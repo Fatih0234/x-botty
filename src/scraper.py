@@ -1,3 +1,4 @@
+import os
 import re
 import time
 from datetime import datetime, timezone, timedelta
@@ -24,7 +25,7 @@ class TwitterScraper:
         options = Options()
         if headless:
             options.add_argument("--headless")
-        if firefox_profile:
+        if firefox_profile and os.path.exists(firefox_profile):
             options.profile = firefox_profile
 
         service = Service(GeckoDriverManager().install())
