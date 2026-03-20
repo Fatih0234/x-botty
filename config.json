@@ -1,8 +1,20 @@
 {
   "firefox_profile": "/Users/fatihkarahan/Library/Application Support/Firefox/Profiles/PFjtUrJY.Profile 1",
   "headless": false,
-  "accounts": ["bcherny", "trq212", "karpathy", "AlexFinn", "theo", "LexnLin", "GabriellaG439", "thsottiaux", "mckaywrigley"
-, "odysseus0z", "yacinelearning", "amorriscode", "dexhorthy"
-
-]
+  "accounts": [
+    "bcherny",
+    "trq212",
+    "karpathy",
+    "AlexFinn",
+    "theo",
+    "LexnLin",
+    "GabriellaG439",
+    "thsottiaux",
+    "mckaywrigley",
+    "odysseus0z",
+    "yacinelearning",
+    "amorriscode",
+    "dexhorthy",
+    "ericzakariasson"
+  ]
 }
