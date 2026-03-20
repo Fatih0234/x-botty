@@ -1,0 +1,74 @@
+name: Manage Accounts
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '"add" or "remove"'
+        required: true
+        type: choice
+        options:
+          - add
+          - remove
+      username:
+        description: 'Twitter handle (with or without @)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  manage-accounts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update accounts in config.json
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+
+          action = "${{ github.event.inputs.action }}"
+          username = "${{ github.event.inputs.username }}".lstrip("@")
+
+          with open("config.json") as f:
+              config = json.load(f)
+
+          accounts = config.get("accounts", [])
+          lower_map = {a.lower(): a for a in accounts}
+
+          if action == "add":
+              if username.lower() in lower_map:
+                  print(f"@{username} already in accounts list (as @{lower_map[username.lower()]}), no change")
+              else:
+                  accounts.append(username)
+                  config["accounts"] = accounts
+                  print(f"Added @{username} to accounts list")
+          elif action == "remove":
+              if username.lower() not in lower_map:
+                  print(f"@{username} not found in accounts list, no change")
+              else:
+                  existing = lower_map[username.lower()]
+                  accounts = [a for a in accounts if a.lower() != username.lower()]
+                  config["accounts"] = accounts
+                  print(f"Removed @{existing} from accounts list")
+          else:
+              print(f"Unknown action: {action}", file=sys.stderr)
+              sys.exit(1)
+
+          with open("config.json", "w") as f:
+              json.dump(config, f, indent=2)
+              f.write("\n")
+          EOF
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet config.json; then
+            echo "No changes to commit"
+          else
+            git add config.json
+            git commit -m "chore: ${{ github.event.inputs.action }} @${{ github.event.inputs.username }} via bot [skip ci]"
+            git push
+          fi
