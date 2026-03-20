@@ -157,6 +157,19 @@ def get_recent_tweets(username: str, hours: int = 24) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def get_candidate_tweets(max_age_hours: int = 72) -> list[dict]:
+    """Return latest-snapshot data for all tweets posted within max_age_hours."""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT t.*, s.views, s.likes, s.retweets, s.replies, s.engagement_score, s.recorded_at AS snapshot_at
+            FROM tweets t
+            JOIN snapshots s ON s.tweet_url = t.url
+            WHERE t.posted_at >= datetime('now', ?)
+              AND s.id = (SELECT id FROM snapshots WHERE tweet_url = t.url ORDER BY recorded_at DESC LIMIT 1)
+        """, (f"-{max_age_hours} hours",)).fetchall()
+    return [dict(row) for row in rows]
+
+
 def get_breakouts(hours: int = 6, min_score_delta: float = 50.0) -> list[dict]:
     """
     Tweets where engagement_score grew significantly in the last N hours.

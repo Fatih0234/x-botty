@@ -3,6 +3,8 @@ import json
 from datetime import datetime, timezone
 
 from config import ROOT_DIR
+import db
+from virality import rank_by_viral_score
 
 # Weights reflect amplification value: retweet > reply > like
 RETWEET_WEIGHT = 5
@@ -61,3 +63,27 @@ def save_report(data: dict) -> str:
         json.dump(payload, f, indent=2)
 
     return path, payload
+
+
+def generate_viral_ranking(now: datetime | None = None) -> str:
+    if now is None:
+        now = datetime.now(timezone.utc)
+
+    tweets = db.get_candidate_tweets(max_age_hours=72)
+    tweets_with_snapshots = [(t, db.get_snapshots(t["url"])) for t in tweets]
+    ranked = rank_by_viral_score(tweets_with_snapshots, now)
+
+    reports_dir = os.path.join(ROOT_DIR, "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    date_str = now.strftime("%Y-%m-%d")
+    path = os.path.join(reports_dir, f"{date_str}_viral.json")
+
+    payload = {
+        "generated_at": now.isoformat(),
+        "count": len(ranked),
+        "tweets": ranked,
+    }
+    with open(path, "w") as f:
+        json.dump(payload, f, indent=2)
+
+    return path

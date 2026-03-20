@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import get_accounts, get_firefox_profile, get_headless, get_cookies
 from scraper import TwitterScraper
-from report import engagement_score
+from report import engagement_score, generate_viral_ranking
 import db
 
 
@@ -68,6 +68,9 @@ def main():
         print(f"\nBreakout tweets (last 6h):")
         for b in breakouts[:5]:
             print(f"  +{b['delta']:.0f}  @{b['username']}: {b['url']}")
+
+    viral_path = generate_viral_ranking()
+    print(f"\nViral ranking saved to {viral_path}")
 
 
 if __name__ == "__main__":
