@@ -70,6 +70,11 @@ def init_db():
                 conn.execute(f"ALTER TABLE tweets ADD COLUMN {col} {ddl}")
             except Exception:
                 pass  # column already exists
+        for col in ["view_momentum", "engagement_momentum", "quality", "reach", "freshness", "viral_score"]:
+            try:
+                conn.execute(f"ALTER TABLE snapshots ADD COLUMN {col} REAL")
+            except Exception:
+                pass  # column already exists
 
 
 def upsert_tweet(tweet: dict):
@@ -168,6 +173,27 @@ def get_candidate_tweets(max_age_hours: int = 72) -> list[dict]:
               AND s.id = (SELECT id FROM snapshots WHERE tweet_url = t.url ORDER BY recorded_at DESC LIMIT 1)
         """, (f"-{max_age_hours} hours",)).fetchall()
     return [dict(row) for row in rows]
+
+
+def save_viral_scores(scores: list[dict]):
+    """Update the latest snapshot for each tweet with computed viral metrics."""
+    with get_conn() as conn:
+        for s in scores:
+            url = s["url"]
+            conn.execute("""
+                UPDATE snapshots
+                SET view_momentum=?, engagement_momentum=?, quality=?, reach=?, freshness=?, viral_score=?
+                WHERE tweet_url=?
+                  AND id=(SELECT id FROM snapshots WHERE tweet_url=? ORDER BY recorded_at DESC LIMIT 1)
+            """, (
+                s.get("view_momentum"),
+                s.get("engagement_momentum"),
+                s.get("quality"),
+                s.get("reach"),
+                s.get("freshness"),
+                s.get("viral_score"),
+                url, url,
+            ))
 
 
 def get_breakouts(hours: int = 6, min_score_delta: float = 50.0) -> list[dict]:

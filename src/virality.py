@@ -146,6 +146,7 @@ def compute_viral_scores(tweets_with_snapshots: list[tuple[dict, list[dict]]], n
             "retweets": t.get("retweets"),
             "weighted_engagement": weighted_engagement(t),
             "quality": quality(t),
+            "reach": row["r_reach"],
             "view_momentum": row["r_vm"],
             "engagement_momentum": row["r_em"],
             "freshness": f,

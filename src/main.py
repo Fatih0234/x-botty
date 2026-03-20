@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import get_accounts, get_firefox_profile, get_headless, get_cookies
 from scraper import TwitterScraper
 from report import engagement_score, generate_viral_ranking
+from virality import compute_viral_scores
 import db
 
 
@@ -62,6 +63,13 @@ def main():
         print(f"  {stale_count} older tracked tweet(s) not re-scraped this run")
 
     print(f"\n{new_total} new tweet(s) added to DB.")
+
+    now = datetime.now(timezone.utc)
+    candidates = db.get_candidate_tweets(max_age_hours=72)
+    tweets_with_snapshots = [(t, db.get_snapshots(t["url"])) for t in candidates]
+    scores = compute_viral_scores(tweets_with_snapshots, now)
+    db.save_viral_scores(scores)
+    print(f"Viral scores saved for {len(scores)} tweet(s).")
 
     breakouts = db.get_breakouts(hours=6, min_score_delta=50.0)
     if breakouts:
