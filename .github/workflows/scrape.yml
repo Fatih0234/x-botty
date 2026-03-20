@@ -1,0 +1,49 @@
+name: Scrape Twitter
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # every 3 hours
+  workflow_dispatch:          # allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Need full history to push commits back
+          fetch-depth: 0
+
+      - name: Install Firefox
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y firefox
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Restore DB
+        uses: actions/cache@v4
+        with:
+          path: data/twitter.db
+          key: twitter-db-${{ github.run_id }}
+          restore-keys: twitter-db-
+
+      - name: Run scraper
+        env:
+          TWITTER_COOKIES: ${{ secrets.TWITTER_COOKIES }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: uv run python src/main.py
+
+      - name: Commit DB changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/twitter.db
+          git diff --cached --quiet || git commit -m "chore: scrape snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push

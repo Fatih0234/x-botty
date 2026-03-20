@@ -1,0 +1,9 @@
+.DS_Store
+.env
+# config.json is committed — it has no secrets (cookies/keys are in GH secrets)
+cookies.json
+reports/
+data/*.db
+__pycache__/
+*.pyc
+.venv/
