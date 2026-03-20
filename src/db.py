@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS tweets (
     is_quote_tweet INTEGER DEFAULT 0,
     is_pinned   INTEGER DEFAULT 0,
     quoted_tweet_url TEXT,
+    quoted_tweet_author TEXT,
+    quoted_tweet_text TEXT,
     hashtags    TEXT,
     mentions    TEXT,
     external_links TEXT,
@@ -59,6 +61,15 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        # Migrations for columns added after initial deploy
+        for col, ddl in [
+            ("quoted_tweet_author", "TEXT"),
+            ("quoted_tweet_text",   "TEXT"),
+        ]:
+            try:
+                conn.execute(f"ALTER TABLE tweets ADD COLUMN {col} {ddl}")
+            except Exception:
+                pass  # column already exists
 
 
 def upsert_tweet(tweet: dict):
@@ -68,8 +79,9 @@ def upsert_tweet(tweet: dict):
             INSERT OR IGNORE INTO tweets
                 (url, username, text, posted_at, first_seen_at,
                  is_retweet, is_reply, is_quote_tweet, is_pinned,
-                 quoted_tweet_url, hashtags, mentions, external_links, media_urls)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 quoted_tweet_url, quoted_tweet_author, quoted_tweet_text,
+                 hashtags, mentions, external_links, media_urls)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             tweet["url"],
             tweet["username"],
@@ -81,6 +93,8 @@ def upsert_tweet(tweet: dict):
             int(tweet.get("is_quote_tweet", False)),
             int(tweet.get("is_pinned", False)),
             tweet.get("quoted_tweet_url"),
+            tweet.get("quoted_tweet_author"),
+            tweet.get("quoted_tweet_text"),
             json.dumps(tweet.get("hashtags") or []),
             json.dumps(tweet.get("mentions") or []),
             json.dumps(tweet.get("external_links") or []),

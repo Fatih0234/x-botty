@@ -16,8 +16,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          # Need full history to push commits back
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install Firefox
         uses: browser-actions/setup-firefox@v1
@@ -28,12 +27,11 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Restore DB
-        uses: actions/cache@v4
-        with:
-          path: data/twitter.db
-          key: twitter-db-${{ github.run_id }}
-          restore-keys: twitter-db-
+      - name: Download DB from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download latest-db --pattern "twitter.db" --dir data/ || echo "No existing release, starting fresh"
 
       - name: Run scraper
         env:
@@ -42,10 +40,10 @@ jobs:
           HEADLESS: "true"
         run: uv run python src/main.py
 
-      - name: Commit DB changes
+      - name: Upload DB to release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/twitter.db
-          git diff --cached --quiet || git commit -m "chore: scrape snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push
+          gh release view latest-db 2>/dev/null || \
+            gh release create latest-db --title "Latest DB" --notes "Persistent SQLite database" --prerelease
+          gh release upload latest-db data/twitter.db --clobber

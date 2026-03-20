@@ -177,12 +177,24 @@ def _parse_article(article, username: str) -> dict | None:
         quote_els = article.find_elements(By.CSS_SELECTOR, "div[role='blockquote'], div[data-testid='quoteTweet']")
         is_quote_tweet = bool(quote_els)
         quoted_tweet_url = None
+        quoted_tweet_author = None
+        quoted_tweet_text = None
         if is_quote_tweet:
-            q_url_els = quote_els[0].find_elements(By.CSS_SELECTOR, "a[href*='/status/']")
+            q_block = quote_els[0]
+            q_url_els = q_block.find_elements(By.CSS_SELECTOR, "a[href*='/status/']")
             if q_url_els:
                 q_href = q_url_els[0].get_attribute("href") or ""
                 q_match = re.search(r"/([\w]+/status/\d+)", q_href)
                 quoted_tweet_url = f"https://x.com/{q_match.group(1)}" if q_match else None
+            q_text_els = q_block.find_elements(By.CSS_SELECTOR, "div[data-testid='tweetText']")
+            quoted_tweet_text = q_text_els[0].text if q_text_els else None
+            # Author: look for a span with the @username pattern inside the quoted block
+            q_author_els = q_block.find_elements(By.CSS_SELECTOR, "span")
+            for span in q_author_els:
+                t = span.text.strip()
+                if t.startswith("@"):
+                    quoted_tweet_author = t.lstrip("@")
+                    break
 
         # Pinned tweet
         is_pinned = bool(article.find_elements(By.XPATH, ".//*[contains(text(), 'Pinned')]"))
@@ -240,6 +252,8 @@ def _parse_article(article, username: str) -> dict | None:
             "is_quote_tweet": is_quote_tweet,
             "is_pinned": is_pinned,
             "quoted_tweet_url": quoted_tweet_url,
+            "quoted_tweet_author": quoted_tweet_author,
+            "quoted_tweet_text": quoted_tweet_text,
             "hashtags": hashtags,
             "mentions": mentions,
             "external_links": external_links,

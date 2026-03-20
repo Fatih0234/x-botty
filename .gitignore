@@ -3,7 +3,7 @@
 # config.json is committed — it has no secrets (cookies/keys are in GH secrets)
 cookies.json
 reports/
-# data/*.db is intentionally tracked — committed back by GitHub Actions after each run
+data/twitter.db
 __pycache__/
 *.pyc
 .venv/
