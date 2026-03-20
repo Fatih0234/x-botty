@@ -1,5 +1,6 @@
 import sys
 import os
+from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,6 +18,11 @@ def main():
 
     db.init_db()
 
+    lookback_hours_map = {
+        account: 24 * 7 if not db.account_has_tweets(account) else 72
+        for account in accounts
+    }
+
     print(f"Scraping {len(accounts)} account(s): {', '.join('@' + a for a in accounts)}")
 
     scraper = TwitterScraper(
@@ -26,13 +32,14 @@ def main():
     )
 
     try:
-        results = scraper.scrape_all(accounts)
+        results = scraper.scrape_all(accounts, lookback_hours_map)
     finally:
         scraper.close()
 
     # Fetch known URLs once to avoid per-tweet DB queries
     known_urls = set(db.get_active_tweet_urls(max_age_days=30))
 
+    cutoff_3d = datetime.now(timezone.utc) - timedelta(days=3)
     new_total = 0
     for account, tweets in results.items():
         new_for_account = 0
@@ -40,7 +47,8 @@ def main():
             tweet["engagement_score"] = engagement_score(tweet)
             is_new = tweet["url"] not in known_urls
             db.upsert_tweet(tweet)
-            db.add_snapshot(tweet)
+            if datetime.fromisoformat(tweet["posted_at"]) >= cutoff_3d:
+                db.add_snapshot(tweet)
             if is_new:
                 new_for_account += 1
                 known_urls.add(tweet["url"])

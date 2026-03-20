@@ -105,6 +105,12 @@ def add_snapshot(tweet: dict):
         ))
 
 
+def account_has_tweets(username: str) -> bool:
+    with get_conn() as conn:
+        row = conn.execute("SELECT 1 FROM tweets WHERE username = ? LIMIT 1", (username,)).fetchone()
+    return row is not None
+
+
 def get_active_tweet_urls(max_age_days: int = 7) -> list[str]:
     """Return URLs of tweets still within the tracking window."""
     with get_conn() as conn:

@@ -47,7 +47,7 @@ class TwitterScraper:
         self.browser.refresh()
         time.sleep(2)
 
-    def scrape(self, username: str) -> list[dict]:
+    def scrape(self, username: str, lookback_hours: int = 72) -> list[dict]:
         self.browser.get(f"https://x.com/{username}")
 
         # Wait for first tweet batch then give it a moment to fully render
@@ -56,7 +56,7 @@ class TwitterScraper:
         )
         time.sleep(2)
 
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
         tweets: list[dict] = []
         seen_urls: set[str] = set()
         empty_scroll_count = 0
@@ -121,12 +121,13 @@ class TwitterScraper:
         # Belt-and-suspenders filter
         return [t for t in tweets if datetime.fromisoformat(t["posted_at"]) >= cutoff]
 
-    def scrape_all(self, accounts: list[str]) -> dict[str, list[dict]]:
+    def scrape_all(self, accounts: list[str], lookback_hours_map: dict[str, int] | None = None) -> dict[str, list[dict]]:
         results = {}
         for account in accounts:
-            print(f"  Scraping @{account}...")
+            hours = (lookback_hours_map or {}).get(account, 72)
+            print(f"  Scraping @{account} (lookback={hours}h)...")
             try:
-                results[account] = self.scrape(account)
+                results[account] = self.scrape(account, lookback_hours=hours)
                 print(f"  @{account}: found {len(results[account])} tweet(s)")
             except Exception as e:
                 print(f"  Error scraping @{account}: {e}")
