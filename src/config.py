@@ -13,6 +13,8 @@ def get_firefox_profile() -> str:
 
 
 def get_headless() -> bool:
+    if os.environ.get("HEADLESS", "").lower() in ("1", "true"):
+        return True
     with open(os.path.join(ROOT_DIR, "config.json"), "r") as f:
         return json.load(f).get("headless", False)
 

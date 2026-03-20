@@ -38,6 +38,7 @@ jobs:
         env:
           TWITTER_COOKIES: ${{ secrets.TWITTER_COOKIES }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HEADLESS: "true"
         run: uv run python src/main.py
 
       - name: Commit DB changes
